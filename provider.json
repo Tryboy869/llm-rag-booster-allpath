@@ -1,85 +1,77 @@
 {
-  "name": "llm-rag-booster",
-  "version": "1.0.0",
-  "description": "Gravitational Memory for 15-60× LLM context extension. Achieves 1240× compression with 100% integrity using quantum-inspired orbital states.",
+  "name": "ragbooster",
+  "version": "2.0.0",
+  "description": "Zero-heavy-dependency, LLM-agnostic RAG: BM25 sparse retrieval over document chunks, plus a universal LLM client (OpenAI, Groq, Anthropic, Ollama). Selects the relevant subset of a large corpus that fits inside the target model's existing context window.",
   "language": "python",
-  "entry_point": "booster.py",
+  "entry_point": "python -m ragbooster.cli",
   "author": "Daouda Abdoul Anzize",
   "repository": "https://github.com/Tryboy869/llm-rag-booster-allpath",
   "license": "MIT",
-  
+
   "features": [
-    "1240× compression via gravitational bits",
-    "100% integrity guarantee",
-    "LLM agnostic (Groq, OpenAI, Anthropic, Ollama)",
-    "Quantum-inspired encoding",
-    "Intelligent keyword indexing"
+    "Okapi BM25 sparse retrieval (real ranking, not raw keyword-overlap counting)",
+    "LLM-agnostic: OpenAI, Groq, Anthropic (correct auth headers), Ollama",
+    "State persisted to disk between CLI calls (each call is a separate process)",
+    "Optional HTTP server (FastAPI) and Docker image for non-Python callers",
+    "Conversation history support in ask()"
   ],
-  
+
   "functions": [
     {
       "name": "init",
-      "description": "Initialize RAG Booster with any LLM endpoint",
-      "args": ["api_url", "api_key", "model_name"],
-      "returns": "dict (success, model, compression_states)"
+      "description": "Start a session against any LLM endpoint. Writes session state to --state (default .ragbooster/session.json) so subsequent calls in separate processes can find it.",
+      "args": ["--api-url", "--api-key", "--model", "--provider (optional, auto-detected from api-url if omitted)"],
+      "returns": "dict (success, provider, state_file)"
     },
     {
       "name": "load",
-      "description": "Load document into gravitational memory (1240× compressed)",
-      "args": ["text"],
-      "returns": "dict (chunks, compression_ratio, indexed_keywords, integrity)"
+      "description": "Chunk and index a document (positional text, or --file path) via BM25.",
+      "args": ["text", "--file (optional)", "--chunk-size (default 200)", "--overlap (default 50)"],
+      "returns": "dict (chunks_added, total_chunks, indexed_terms, elapsed_seconds)"
     },
     {
       "name": "ask",
-      "description": "Ask question with 15-60× extended context",
-      "args": ["question", "top_k (optional, default=8)"],
-      "returns": "string (answer from LLM)"
+      "description": "Retrieve the top-k relevant chunks for the question and ask the configured LLM.",
+      "args": ["question", "--top-k (optional, default=8)"],
+      "returns": "dict (answer, sources, chunks_used)"
     },
     {
       "name": "stats",
-      "description": "Get compression and memory statistics",
+      "description": "Get index and session statistics.",
       "args": [],
-      "returns": "dict (chunks, bits, keywords, compression_level, states, integrity)"
+      "returns": "dict (total_chunks, indexed_terms, avg_chunk_length_tokens, provider, model, history_turns)"
     }
   ],
-  
+
   "technical_specs": {
-    "compression_states": 1240,
-    "compression_level": 15,
-    "integrity_guarantee": "100%",
-    "context_extension": "15-60×",
-    "encoding": "Quantum-inspired orbital states"
+    "retrieval_algorithm": "Okapi BM25 (k1=1.5, b=0.75 by default)",
+    "what_this_does_NOT_do": "Does not change or extend the target LLM's actual context window size. It selects a relevant subset of a larger corpus so that subset fits inside the window that already exists.",
+    "dependency_footprint": "requests only for the core library; fastapi+uvicorn only if running as an HTTP service"
   },
-  
+
   "dependencies": [
     "requests>=2.28.0"
   ],
-  
+
   "examples": [
     {
       "description": "Initialize with Groq",
       "call": {
         "function": "init",
-        "args": [
-          "https://api.groq.com/openai/v1/chat/completions",
-          "YOUR_GROQ_API_KEY",
-          "llama-3.3-70b-versatile"
-        ]
+        "args": {
+          "--api-url": "https://api.groq.com/openai/v1/chat/completions",
+          "--api-key": "YOUR_GROQ_API_KEY",
+          "--model": "llama-3.3-70b-versatile"
+        }
       }
     },
     {
-      "description": "Load large document",
-      "call": {
-        "function": "load",
-        "args": ["Your 50k+ word document..."]
-      }
+      "description": "Load a document from a file",
+      "call": { "function": "load", "args": { "--file": "my_document.txt" } }
     },
     {
-      "description": "Ask with extended context",
-      "call": {
-        "function": "ask",
-        "args": ["What is the main conclusion?"]
-      }
+      "description": "Ask a question",
+      "call": { "function": "ask", "args": { "question": "What is the main conclusion?" } }
     }
   ]
 }

@@ -1,0 +1,16 @@
+.git
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.ragbooster
+tests
+benchmark
+examples
+*.md
+!README.md
+.venv
+venv
+*.egg-info
+dist
+build
